@@ -924,8 +924,17 @@ uint32_t kernel_version(int attempt)
 
 std::string abs_path(const std::string &rel_path)
 {
-  auto p = std_filesystem::path(rel_path);
-  return std_filesystem::canonical(std_filesystem::absolute(p)).string();
+  // filesystem::canonical does not work very well with /proc paths
+  // failing during canonicalization. See iovisor:bpftrace#1595
+  if (rel_path.rfind("/proc", 0) != 0)
+  {
+    auto p = std_filesystem::path(rel_path);
+    return std_filesystem::canonical(std_filesystem::absolute(p)).string();
+  }
+  else
+  {
+    return rel_path;
+  }
 }
 
 } // namespace bpftrace
