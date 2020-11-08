@@ -198,10 +198,13 @@ foreach(testprog ${testprogs})
   if(HAVE_SYSTEMTAP_SYS_SDT_H)
     target_compile_definitions(${bin_name} PRIVATE HAVE_SYSTEMTAP_SYS_SDT_H)
   endif(HAVE_SYSTEMTAP_SYS_SDT_H)
-  set_target_properties( ${bin_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testprogs/ COMPILE_FLAGS "-g -O0" LINK_FLAGS "-no-pie")
+  set_target_properties(${bin_name} PROPERTIES LINK_SEARCH_START_STATIC FALSE LINK_SEARCH_END_STATIC FALSE RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testprogs/ COMPILE_FLAGS "-g -O0" LINK_FLAGS "-no-pie")
   list(APPEND compiled_testprogs ${CMAKE_CURRENT_BINARY_DIR}/testprogs/${bin_name})
 endforeach()
 add_custom_target(testprogs DEPENDS ${compiled_testprogs})
+
+target_include_directories(usdt_lib PUBLIC ${CMAKE_SOURCE_DIR}/tests/testlibs/)
+target_link_libraries(usdt_lib -shared usdt_tp)
 
 # Similarly compile all test libs
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testlibs/)
@@ -211,6 +214,9 @@ foreach(testlib_source ${testlibs})
   get_filename_component(testlib_name ${testlib_source} NAME_WE)
   add_library(${testlib_name} SHARED ${testlib_source})
   set_target_properties(${testlib_name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testlibs/ COMPILE_FLAGS "-g -O0")
+  if(HAVE_SYSTEMTAP_SYS_SDT_H)
+    target_compile_definitions(${testlib_name} PRIVATE HAVE_SYSTEMTAP_SYS_SDT_H)
+  endif(HAVE_SYSTEMTAP_SYS_SDT_H)
   # clear the executable bit
   add_custom_command(TARGET ${testlib_name}
     POST_BUILD
@@ -218,6 +224,8 @@ foreach(testlib_source ${testlibs})
   list(APPEND compiled_testlibs ${CMAKE_CURRENT_BINARY_DIR}/testlibs/lib${testlib_name}.so)
 endforeach()
 add_custom_target(testlibs DEPENDS ${compiled_testlibs})
+
+target_compile_options(usdt_tp PRIVATE -fPIC)
 
 configure_file(runtime-tests.sh runtime-tests.sh COPYONLY)
 file(GLOB runtime_tests runtime/*)
