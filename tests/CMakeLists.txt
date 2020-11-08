@@ -188,15 +188,27 @@ endif(NOT STATIC_LINKING)
 
 add_test(NAME bpftrace_test COMMAND bpftrace_test)
 
-# Compile all testprograms, one per .c file for runtime testing
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testprogs/)
 file(GLOB testprogs testprogs/*.c)
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testlibs/)
+file(GLOB testlibs testlibs/*.c)
+
+set(testlib_names "")
+foreach(testlib_source ${testlibs})
+  get_filename_component(testlib_name ${testlib_source} NAME_WE)
+  list(APPEND testlib_names ${testlib_name})
+endforeach()
+
+# Compile all testprograms, one per .c file for runtime testing
 set(compiled_testprogs "")
 foreach(testprog ${testprogs})
   get_filename_component(bin_name ${testprog} NAME_WE)
   add_executable (${bin_name} ${testprog})
   if(HAVE_SYSTEMTAP_SYS_SDT_H)
     target_compile_definitions(${bin_name} PRIVATE HAVE_SYSTEMTAP_SYS_SDT_H)
+    target_include_directories(${bin_name} PUBLIC ${CMAKE_SOURCE_DIR}/tests/testlibs/)
+    target_link_libraries(${bin_name} ${testlib_names})
   endif(HAVE_SYSTEMTAP_SYS_SDT_H)
   set_target_properties( ${bin_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testprogs/ COMPILE_FLAGS "-g -O0" LINK_FLAGS "-no-pie")
   list(APPEND compiled_testprogs ${CMAKE_CURRENT_BINARY_DIR}/testprogs/${bin_name})
@@ -204,12 +216,13 @@ endforeach()
 add_custom_target(testprogs DEPENDS ${compiled_testprogs})
 
 # Similarly compile all test libs
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testlibs/)
-file(GLOB testlibs testlibs/*.c)
 set(compiled_testlibs "")
 foreach(testlib_source ${testlibs})
   get_filename_component(testlib_name ${testlib_source} NAME_WE)
   add_library(${testlib_name} SHARED ${testlib_source})
+  if(HAVE_SYSTEMTAP_SYS_SDT_H)
+    target_compile_definitions(${testlib_name} PRIVATE HAVE_SYSTEMTAP_SYS_SDT_H)
+  endif(HAVE_SYSTEMTAP_SYS_SDT_H)
   set_target_properties(${testlib_name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testlibs/ COMPILE_FLAGS "-g -O0")
   # clear the executable bit
   add_custom_command(TARGET ${testlib_name}
