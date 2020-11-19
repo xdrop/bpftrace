@@ -126,6 +126,8 @@ and this project adheres to
   - [#1645](https://github.com/iovisor/bpftrace/pull/1645)
 - Fix invalid size crash when using strftime() inside a tuple
   - [#1658](https://github.com/iovisor/bpftrace/pull/1658)
+- Fix attaching to usdt probes in shared libraries
+  - [#1600](https://github.com/iovisor/bpftrace/pull/1600)
 
 #### Tools
 - Hook up execsnoop.bt script onto `execveat` call
